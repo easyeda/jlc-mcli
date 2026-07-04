@@ -1,0 +1,40 @@
+{
+  "name": "@jlc/mcli",
+  "version": "1.0.0",
+  "description": "A Node.js command-framework that serves one command tree through both shell execution and MCP protocol, giving AI agents progressive discovery and schema-validated invocation from a single capability definition.",
+  "keywords": [
+    "agent",
+    "cli",
+    "mcp"
+  ],
+  "homepage": "https://github.com/easyeda/jlc-mcli#readme",
+  "bugs": {
+    "url": "https://github.com/easyeda/jlc-mcli/issues"
+  },
+  "license": "MIT",
+  "author": "easyeda",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/easyeda/jlc-mcli.git"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "vp pack",
+    "check": "vp check",
+    "test": "vp test",
+    "prepack": "vp pack"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3",
+    "vite-plus": "^0.2.2"
+  }
+}
