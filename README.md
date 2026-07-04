@@ -1,4 +1,4 @@
-# @jlc/mcli
+# @jlc-eda/mcli
 
 A command framework that serves **one command tree** through both **shell** and **MCP** — from a single definition.
 
@@ -29,7 +29,7 @@ jira_ticket_search, jira_ticket_get, ...
 
 Tool count explodes. Every schema eats context. High mis-call rate.
 
-### @jlc/mcli's answer
+### @jlc-eda/mcli's answer
 
 > One command tree. Humans use it on the shell. Agents use it through MCP — via **three meta-tools**, not dozens.
 
@@ -51,7 +51,7 @@ MCP exposes only `mcli.search` / `mcli.help` / `mcli.call`. Agent discovers path
 ## Install
 
 ```bash
-npm install @jlc/mcli
+npm install @jlc-eda/mcli
 ```
 
 Runtime dependency (add if not present):
@@ -66,7 +66,7 @@ npm install @modelcontextprotocol/sdk
 
 ```ts
 // app.ts
-import { createMcli } from "@jlc/mcli";
+import { createMcli } from "@jlc-eda/mcli";
 
 export const app = createMcli({
   name: "my-cli",
@@ -118,7 +118,7 @@ app.command("issue.list", {
 // bin.ts — your CLI entry
 #!/usr/bin/env node
 import { app } from "./app";
-import { runCli } from "@jlc/mcli";
+import { runCli } from "@jlc-eda/mcli";
 
 await runCli(app, process.argv.slice(2));
 ```
@@ -362,7 +362,7 @@ npm test         # vitest, 51 tests
 npm pack         # produce tarball
 ```
 
-Ships only `dist/`. `@jlc/mcli` → `dist/index.js`.
+Ships only `dist/`. `@jlc-eda/mcli` → `dist/index.js`.
 
 ---
 
