@@ -6,7 +6,8 @@
     "declaration": true,
     "isolatedDeclarations": true,
     "strict": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "types": ["node"]
   },
-  "include": ["src"]
+  "include": ["src", "tests"]
 }

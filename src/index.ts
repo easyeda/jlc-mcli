@@ -1,9 +1,3 @@
-/**
- * @jlc/mcli — entry point.
- *
- * Serves one command tree through both shell execution and MCP protocol,
- * giving AI agents progressive discovery and schema-validated invocation.
- */
-
-export const name = "@jlc/mcli";
-export const version = "1.0.0";
+export { createMcli } from "./core/createMcli";
+export { runCli } from "./cli/runCli";
+export type { McliApp, CommandNode, CommandResult, CommandContext, JSONSchema } from "./types";
