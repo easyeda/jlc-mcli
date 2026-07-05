@@ -8,17 +8,21 @@ describe("search", () => {
 
   beforeEach(() => {
     app = createMcli({ name: "demo", version: "1.0.0" });
-    app.command("github.issue.list", {
+    const github = app.group("github", { summary: "GitHub" });
+    const issue = github.group("issue", { summary: "Issues" });
+    issue.command("list", {
       summary: "List GitHub issues",
       input: { type: "object", properties: {} },
       handler: async () => ({ data: null }),
     });
-    app.command("github.issue.close", {
+    issue.command("close", {
       summary: "Close a GitHub issue",
       input: { type: "object", properties: {} },
       handler: async () => ({ data: null }),
     });
-    app.command("jira.ticket.search", {
+    const jira = app.group("jira", { summary: "Jira" });
+    const ticket = jira.group("ticket", { summary: "Tickets" });
+    ticket.command("search", {
       summary: "Search Jira tickets",
       input: { type: "object", properties: {} },
       handler: async () => ({ data: null }),

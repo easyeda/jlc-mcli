@@ -30,8 +30,9 @@ describe("runCli", () => {
 
   beforeEach(() => {
     app = createMcli({ name: "demo", version: "1.0.0" });
-    app.group("github", { summary: "GitHub ops" });
-    app.command("github.issue.list", {
+    const github = app.group("github", { summary: "GitHub ops" });
+    const issue = github.group("issue", { summary: "Issues" });
+    issue.command("list", {
       summary: "List issues",
       input: {
         type: "object",
@@ -40,7 +41,7 @@ describe("runCli", () => {
       },
       handler: async (input) => ({ data: { repo: input.repo, issues: [] } }),
     });
-    app.command("github.issue.close", {
+    issue.command("close", {
       summary: "Close issue",
       input: {
         type: "object",
@@ -118,7 +119,7 @@ describe("runCli", () => {
     expect(output).toContain("Error");
   });
 
-  it("uses display callback when provided", async () => {
+  it("uses display callback when provided (top-level command)", async () => {
     app.command("hello", {
       summary: "Say hello",
       input: { type: "object", properties: { name: { type: "string" } }, required: ["name"] },
@@ -129,5 +130,19 @@ describe("runCli", () => {
     });
     const output = await captureStdout(() => runCli(app, ["hello", "--name", "world"]));
     expect(output.trim()).toBe("Hello world");
+  });
+
+  it("uses display callback when provided (group binder command)", async () => {
+    const g = app.group("util", { summary: "Utilities" });
+    g.command("ping", {
+      summary: "Ping",
+      input: { type: "object", properties: {} },
+      handler: async () => ({ data: { pong: true } }),
+      display: (result) => {
+        console.log("pong=" + (result.data as any).pong);
+      },
+    });
+    const output = await captureStdout(() => runCli(app, ["util", "ping"]));
+    expect(output.trim()).toBe("pong=true");
   });
 });

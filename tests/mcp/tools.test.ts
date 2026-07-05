@@ -7,7 +7,9 @@ describe("MCP tools", () => {
 
   beforeEach(() => {
     app = createMcli({ name: "demo", version: "1.0.0" });
-    app.command("github.issue.list", {
+    const github = app.group("github", { summary: "GitHub ops" });
+    const issue = github.group("issue", { summary: "Issue ops" });
+    issue.command("list", {
       summary: "List issues",
       input: {
         type: "object",
@@ -16,7 +18,7 @@ describe("MCP tools", () => {
       },
       handler: async (input) => ({ data: { repo: input.repo } }),
     });
-    app.command("github.issue.close", {
+    issue.command("close", {
       summary: "Close issue",
       input: {
         type: "object",
@@ -30,7 +32,7 @@ describe("MCP tools", () => {
     });
   });
 
-  it("mcli.search returns matches", async () => {
+  it("mcli.discover returns matches", async () => {
     const { search } = await import("../../src/core/search");
     const matches = search(app, "close");
     expect(matches.length).toBeGreaterThan(0);

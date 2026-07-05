@@ -1,50 +1,6 @@
 # @jlc-eda/mcli
 
-A command framework that serves **one command tree** through both **shell** and **MCP** — from a single definition.
-
----
-
-## Why
-
-Two common approaches to AI tooling both have serious flaws.
-
-### 1. Load a Skill / plugin, let the model read docs and improvise
-
-```
-model sees skill summary
-  → model decides whether to load SKILL.md
-  → model reads the doc
-  → model infers the flow
-  → model executes (and maybe fails)
-```
-
-Natural-language constraints. Model compliance is non-deterministic. Multi-step tasks drift. Failure recovery lives in prose.
-
-### 2. Expose dozens of flat MCP tools
-
-```
-github_issue_list, github_issue_get, github_issue_close,
-jira_ticket_search, jira_ticket_get, ...
-```
-
-Tool count explodes. Every schema eats context. High mis-call rate.
-
-### @jlc-eda/mcli's answer
-
-> One command tree. Humans use it on the shell. Agents use it through MCP — via **three meta-tools**, not dozens.
-
-```
-root
-├── github
-│   ├── issue → list / get / close
-│   └── pr    → list / get / merge
-├── jira
-│   └── ticket → search / get / transition
-└── db
-    └── schema → list
-```
-
-MCP exposes only `mcli.search` / `mcli.help` / `mcli.call`. Agent discovers paths, reads schemas, invokes — progressive disclosure.
+A command framework that serves **one command tree** through both **shell** and **MCP** — from a single definition with zero runtime dependencies.
 
 ---
 
@@ -54,11 +10,13 @@ MCP exposes only `mcli.search` / `mcli.help` / `mcli.call`. Agent discovers path
 npm install @jlc-eda/mcli
 ```
 
-Runtime dependency (add if not present):
+Peer dependencies (required by your host project):
 
 ```bash
-npm install @modelcontextprotocol/sdk
+npm install zod @modelcontextprotocol/sdk
 ```
+
+`@jlc-eda/mcli` ships with **zero direct dependencies** — all runtime deps are provided by your project via peer deps.
 
 ---
 
@@ -73,9 +31,9 @@ export const app = createMcli({
   version: "1.0.0",
 });
 
-app.group("issue", { summary: "Work with issues" });
+const issue = app.group("issue", { summary: "Work with issues" });
 
-app.command("issue.list", {
+issue.command("list", {
   summary: "List issues",
   description: "List issues from a repository.",
 
@@ -132,7 +90,7 @@ node bin.js issue list --repo acme/app
 
 # JSON (no display callback → fallback to JSON.stringify(result))
 node bin.js issue list --repo acme/app --json
-# { "ok": true, "path": "issue.list", "data": { "issues": [...] }, "next": [...] }
+# { "ok": true, "path: "issue.list", "data": { "issues": [...] }, "next": [...] }
 
 # MCP stdio
 node bin.js --mcp stdio
@@ -145,40 +103,58 @@ node bin.js --mcp http --port 3030
 
 ## How it works
 
+### Progressive command registration
+
+Commands are registered via `group()` binders — **no dot-paths allowed**:
+
+```ts
+const issue = app.group("issue", { summary: "Work with issues" });
+issue.command("list", {...});   // CLI path: issue list, MCP path: issue.list
+issue.command("close", {...});  // CLI path: issue close, MCP path: issue.close
+
+// Nesting works too:
+const sub = issue.group("label", { summary: "Label ops" });
+sub.command("add", {...});      // CLI path: issue label add, MCP path: issue.label.add
+```
+
+`app.command("foo.bar", ...)` throws — you **must** use group binders for nesting.
+
 ### The tree is the API
 
-Every command is a node. The dot-path `issue.list` maps to:
+Every command is a node. The path `issue.list` maps to:
 
-| Layer      | Reference                               |
-| ---------- | --------------------------------------- |
-| CLI argv   | `issue list`                            |
-| MCP call   | `{ path: "issue.list", input: {...} }`  |
-| Shell help | `my-cli issue list --help`              |
-| Discovery  | `mcli.search({ query: "list issues" })` |
+| Layer      | Reference                              |
+| ---------- | -------------------------------------- |
+| CLI argv   | `issue list`                           |
+| MCP call   | `{ path: "issue.list", input: {...} }` |
+| Shell help | `my-cli issue list --help`             |
+| Discovery  | `mcli.discover({ query: "list issues" })` |
 
-### Progressive disclosure
+### MCP meta-tools (AI agent workflow)
+
+| Order | Tool            | Purpose                                                                |
+| ----- | --------------- | ---------------------------------------------------------------------- |
+| 1     | `mcli.help`     | ALWAYS call first. Returns subcommands, schemas, usage examples.       |
+| 2     | `mcli.discover` | Find specific commands by keyword after help.                          |
+| 3     | `mcli.call`     | Execute a command. Returns real data (search results, page content...). |
+
+Agent workflow:
 
 ```
-Model: "what commands exist?"
-  → mcli.search({ query: "github" })
-  → [ { path: "github.issue.list", summary: "List issues" }, ... ]
+Model: "what can this tool do?"
+  → mcli.help()
+  → { children: [{ path: "issue.list", summary: "..." }, ...] }
 
-Model: "How do I call it?"
-  → mcli.help({ path: "github.issue.list" })
-  → {
-      path: "github.issue.list",
-      summary: "List issues",
-      isGroup: false,
-      input: { type: "object", properties: {...}, required: ["repo"] },
-      children: []
-    }
+Model: "find issue-related commands"
+  → mcli.discover({ query: "issue" })
+  → [ { path: "issue.list", summary: "List issues" }, ... ]
 
-Model: formulate input, then call
-  → mcli.call({ path: "github.issue.list", input: { repo: "acme/app" } })
-  → { ok: true, path: "...", data: { issues: [...] } }
+Model: "list open issues for acme/app"
+  → mcli.call({ path: "issue.list", input: { repo: "acme/app", state: "open" } })
+  → { ok: true, data: { issues: [...] }, next: [{ path: "issue.get", reason: "Read detail" }] }
 ```
 
-Agent never sees more schema than it needs.
+The `next` field in results suggests follow-up actions — chain tools naturally.
 
 ### CLI output: display callback first
 
@@ -191,16 +167,6 @@ command has display? ─── yes → display(result)
 ```
 
 `display` lets each command control its human-readable shape. The `data` field carries structured output for JSON consumers.
-
-### MCP meta-tools
-
-| Tool          | Purpose                                |
-| ------------- | -------------------------------------- |
-| `mcli.search` | Find commands by free-text query       |
-| `mcli.help`   | Get help + input schema for a path     |
-| `mcli.call`   | Execute a command with validated input |
-
-Command discovery happens through the tree, not through tool enumeration.
 
 ### Transport protocols
 
@@ -221,57 +187,54 @@ HTTP mode is **stateless** — each request creates a fresh transport, no sessio
 function createMcli(opts: { name: string; version: string; summary?: string }): McliApp;
 ```
 
-### `app.group(path, opts)`
+### `app.group(name, opts)`
+
+Returns a `CommandGroup` binder for progressive registration.
 
 ```ts
-app.group("github", {
+interface CommandGroup {
+  command(name: string, opts: CommandOptions): void;
+  group(name: string, opts: GroupOptions): CommandGroup;  // nesting
+}
+
+const github = app.group("github", {
   summary: "Work with GitHub",
   description: "Longer-form description.",
 });
+
+github.command("list", {...});  // path: github.list
+const issue = github.group("issue", { summary: "Issues" });
+issue.command("list", {...});   // path: github.issue.list
 ```
 
-Idempotent — re-registering updates metadata.
+**`name`** — simple identifier, no dots allowed. Throws if contains `.`.
 
-### `app.command(path, opts)`
+**Idempotent** — re-registering updates metadata.
+
+### `app.command(name, opts)`
+
+Top-level command (no nesting). For nested commands, use `app.group().command()`.
 
 ```ts
-app.command("github.issue.list", {
-  summary: "List GitHub issues",
-  description: "List issues from a repository.",
-
-  input: {
-    type: "object",
-    properties: {
-      repo: { type: "string", description: "owner/name format" },
-      state: { type: "string", enum: ["open", "closed", "all"], default: "open" },
-      limit: { type: "number", description: "Max results", default: 20 },
-    },
-    required: ["repo"],
-  },
-
-  examples: [
-    {
-      title: "List open issues",
-      input: { repo: "acme/app", state: "open" },
-    },
-  ],
-
-  related: ["github.issue.get", "github.issue.create"],
-
-  handler: async (input, ctx) => {
-    const issues = await getIssues(input);
-    return {
-      data: { issues },
-      next: [{ path: "github.issue.get", reason: "Read issue detail" }],
-    };
-  },
-
-  display: (result) => {
-    // Optional. Custom CLI output. Not used in MCP.
-    const { issues } = result.data as any;
-    for (const i of issues) console.log(`#${i.id} ${i.title}`);
-  },
+app.command("hello", {
+  summary: "Say hello",
+  input: { type: "object", properties: { name: { type: "string" } }, required: ["name"] },
+  handler: async (input) => ({ data: { message: `Hello ${input.name}` } }),
 });
+```
+
+**`name`** — simple identifier, no dots allowed. Throws if contains `.`.
+
+```ts
+interface CommandOptions {
+  summary: string;
+  description?: string;
+  input: JSONSchema;
+  examples?: CommandExample[];
+  related?: string[];
+  handler: (input: Record<string, unknown>, ctx: CommandContext) => Promise<CommandResult> | CommandResult;
+  display?: (result: CommandResult) => void;
+}
 ```
 
 **`input`** — JSON Schema. Validation via `ajv`. `default` values are filled before handler runs.
@@ -287,16 +250,16 @@ app.command("github.issue.list", {
 
 ```ts
 interface CommandResult {
-  data?: unknown; // structured output
-  next?: Array<{ path: string; reason: string }>; // Agent hints
+  data?: unknown;                              // structured output
+  next?: Array<{ path: string; reason: string }>; // Agent hints for follow-up
 }
 ```
 
-**`display`** — optional CLI renderer. Receives the `CommandResult`.
+**`display`** — optional CLI renderer. Receives the `CommandResult`. Not used in MCP mode.
 
 ### `app.resolve(argv)` / `app.allCommands()`
 
-Look up a node (returns `null` if unknown) / list all leaf commands (used by search).
+Look up a node (returns `null` if unknown) / list all leaf commands (used by discover).
 
 ### `runCli(app, argv)`
 
@@ -312,7 +275,7 @@ Handles `--help` / `--search` / `--json` / `--mcp` dispatch, plus direct command
 
 ## JSON input shape
 
-Commands declare `input` as JSON Schema. MVP-supported:
+Commands declare `input` as JSON Schema. Supported:
 
 | Kind            | Example                                                    |
 | --------------- | ---------------------------------------------------------- |
@@ -335,7 +298,7 @@ Error: (root): must have required property 'repo'
 # Shell (--json)
 {
   "ok": false,
-  "path": "github.issue.list",
+  "path": "issue.list",
   "error": {
     "code": "VALIDATION_ERROR",
     "message": "(root): must have required property 'repo'",
@@ -352,17 +315,80 @@ Error: (root): must have required property 'repo'
 | `McliValidationError` | input failed JSON Schema        |
 | `McliExecutionError`  | handler threw / missing handler |
 
+**Registration-time errors**:
+- Dot in command/group name → `"Command(name) must not contain dots. Use app.group() to nest commands."`
+- Invalid example input → throws immediately on `command()` call
+
+---
+
+## Peer dependencies
+
+`@jlc-eda/mcli` ships with zero direct dependencies. Host projects must provide:
+
+```json
+{
+  "dependencies": {
+    "zod": "^3.25.0 || ^4.0.0",
+    "@modelcontextprotocol/sdk": "^1.29.0"
+  }
+}
+```
+
+- **`zod`** — required by both CLI and MCP modes (MCP schema validation)
+- **`@modelcontextprotocol/sdk`** — required for MCP mode (`--mcp stdio` / `--mcp http`)
+
 ---
 
 ## Build / publish
 
 ```bash
 npm run build    # dist/index.js + dist/index.d.ts
-npm test         # vitest, 51 tests
+npm test         # vitest, 62 tests
 npm pack         # produce tarball
 ```
 
 Ships only `dist/`. `@jlc-eda/mcli` → `dist/index.js`.
+
+---
+
+## Project metaso-skill (real-world usage)
+
+See `metaso` project for a real CLI built on `@jlc-eda/mcli`:
+
+```ts
+// src/app.js
+export const app = createMcli({
+  name: 'metaso',
+  version: '2.0.0',
+  summary: 'Metaso AI search & page reader'
+});
+
+app.command('search', {
+  summary: 'Search via Metaso AI engine',
+  input: {
+    type: 'object',
+    properties: {
+      query: { type: 'string', description: 'Search query' },
+      scope: { type: 'string', enum: ['webpage', 'document', 'scholar', 'video'], default: 'webpage' }
+    },
+    required: ['query']
+  },
+  handler: async (input) => {
+    const data = await search(input);
+    return {
+      data,
+      next: [{ path: 'reader', reason: 'Use reader --url <link> to read a result page' }]
+    };
+  }
+});
+
+app.command('reader', { ... });
+```
+
+```bash
+metaso search --query "AI news"              # CLI shell
+metaso --mcp stdio                           # MCP mode for AI agents
+```
 
 ---
 

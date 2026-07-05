@@ -56,12 +56,17 @@ export interface CommandNode {
   children: Map<string, CommandNode>;
 }
 
+export interface CommandGroup {
+  command(name: string, opts: CommandOptions): void;
+  group(name: string, opts: GroupOptions): CommandGroup;
+}
+
 export interface McliApp {
   readonly name: string;
   readonly version: string;
   readonly summary: string;
-  group(path: string, opts: GroupOptions): void;
-  command(path: string, opts: CommandOptions): void;
+  group(name: string, opts: GroupOptions): CommandGroup;
+  command(name: string, opts: CommandOptions): void;
   resolve(argv: string[]): CommandNode | null;
   allCommands(): CommandNode[];
 }

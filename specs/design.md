@@ -32,7 +32,7 @@ MVP 清单：
 7. `--json`
 8. `--mcp stdio`
 9. `--mcp http`（stateless Streamable HTTP）
-10. MCP tools: `mcli.search` / `mcli.help` / `mcli.call`
+10. MCP tools: `mcli.discover` / `mcli.help` / `mcli.call`
 11. JSON Schema 参数定义
 12. ajv 校验 + default 填充
 13. 错误结构化输出
@@ -245,11 +245,11 @@ export async function startMcp(app, opts); // 仅 runCli 内部调用
 
 注册 3 个 tool（MCP SDK `McpServer.registerTool`）：
 
-| tool          | inputSchema                         | handler                                                        |
-| ------------- | ----------------------------------- | -------------------------------------------------------------- |
-| `mcli.search` | `{ query: string, limit?: number }` | `search(app, query, limit)` → `{ matches }`                    |
-| `mcli.help`   | `{ path: string }`                  | `app.resolve(path.split("."))` → JSON；命令节点附 `input` 字段 |
-| `mcli.call`   | `{ path: string, input?: object }`  | `execute(node, input)` → 成功/失败 JSON                        |
+| tool            | inputSchema                         | handler                                                        |
+| --------------- | ----------------------------------- | -------------------------------------------------------------- |
+| `mcli.discover` | `{ query: string, limit?: number }` | `search(app, query, limit)` → `{ matches }`                    |
+| `mcli.help`     | `{ path: string }`                  | `app.resolve(path.split("."))` → JSON；命令节点附 `input` 字段 |
+| `mcli.call`     | `{ path: string, input?: object }`  | `execute(node, input)` → 成功/失败 JSON                        |
 
 所有 tool handler 返回 `{ content: [{ type: "text", text: JSON.stringify(result) }] }`，错误时 `{ isError: true, ... }`。
 

@@ -1,5 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { z } from "zod";
 import type { McliApp } from "../types";
 import { execute } from "../core/execute";
 import { search } from "../core/search";
@@ -13,9 +14,14 @@ export interface McpStartOptions {
   cors?: string;
 }
 
-// Minimal shape accepted by McpServer.registerTool (ZodRawShape compat).
-// Properties cast to any satisfy the AnySchema type.
-const s = (desc: string, jsonType = "string") => ({ type: jsonType, description: desc }) as any;
+// Returns a Zod schema for use in McpServer.registerTool inputSchema.
+// For `object` type we use passthrough() so that arbitrary request payloads are
+// preserved (required for mcli.call which forwards arbitrary input shapes).
+const s = (desc: string, jsonType = "string") => {
+  if (jsonType === "number") return z.number().describe(desc);
+  if (jsonType === "object") return z.object({}).passthrough().describe(desc);
+  return z.string().describe(desc);
+};
 
 export async function startMcp(app: McliApp, opts: McpStartOptions): Promise<void> {
   const server = new McpServer({
@@ -24,29 +30,39 @@ export async function startMcp(app: McliApp, opts: McpStartOptions): Promise<voi
   });
 
   server.registerTool(
-    "mcli.search",
-    {
-      description: "Search commands by query",
-      inputSchema: {
-        query: s("Search query"),
-        limit: s("Max results (default 10)", "number"),
-      },
-    },
-    async (args: any) => {
-      const matches = search(app, args.query, args.limit);
-      return { content: [{ type: "text" as const, text: JSON.stringify({ matches }, null, 2) }] };
-    },
-  );
-
-  server.registerTool(
     "mcli.help",
     {
-      description: "Get help for a command or group path (includes input schema when applicable)",
+      description:
+        "ALWAYS call this FIRST when interacting with a CLI capability. Returns available subcommands, their purpose, input schemas, and usage examples. After understanding via mcli.help, use mcli.discover to find specific commands or mcli.call to execute them.",
       inputSchema: {
-        path: s("Command path like github.issue or github.issue.close"),
+        path: s(
+          "Optional command path like 'github' or 'github.issue'. Omit to see top-level.",
+        ).optional(),
       },
     },
-    async (args: any) => {
+    async (argsRaw: any) => {
+      const args = argsRaw ?? {};
+      // If no path provided, return top-level overview
+      if (!args.path) {
+        const cmds = app.allCommands();
+        const topLevel = new Map<string, string>();
+        for (const c of cmds) {
+          const parts = c.path.split(".");
+          if (!topLevel.has(parts[0])) {
+            topLevel.set(parts[0], c.summary);
+          }
+        }
+        const result = {
+          name: app.name,
+          summary: app.summary,
+          children: [...topLevel.entries()].map(([path, summary]) => ({
+            path,
+            summary,
+          })),
+        };
+        return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
+      }
+
       const node = app.resolve(args.path.split("."));
       if (!node) {
         return { content: [{ type: "text" as const, text: `Unknown path: ${args.path}` }] };
@@ -71,12 +87,29 @@ export async function startMcp(app: McliApp, opts: McpStartOptions): Promise<voi
   );
 
   server.registerTool(
+    "mcli.discover",
+    {
+      description:
+        "Search for commands by keyword AFTER using mcli.help to understand the tool. Returns matching command paths and summaries. Use mcli.help first for overview, then discover to find specifics, then mcli.call to execute.",
+      inputSchema: {
+        query: s("Search query"),
+        limit: s("Max results (default 10)", "number"),
+      },
+    },
+    async (args: any) => {
+      const matches = search(app, args.query, args.limit);
+      return { content: [{ type: "text" as const, text: JSON.stringify({ matches }, null, 2) }] };
+    },
+  );
+
+  server.registerTool(
     "mcli.call",
     {
-      description: "Execute a command",
+      description:
+        "Execute a registered command. Returns real data (search results, page content, etc.). Call mcli.help FIRST for overview, optionally mcli.discover to find commands, then mcli.call to fulfill user requests.",
       inputSchema: {
-        path: s("Command path like github.issue.close"),
-        input: s("Command input", "object"),
+        path: s("Command path like 'github.issue.close' or 'search'"),
+        input: s("Command input parameters", "object"),
       },
     },
     async (args: any) => {
