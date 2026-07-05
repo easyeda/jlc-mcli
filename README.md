@@ -10,13 +10,7 @@ A command framework that serves **one command tree** through both **shell** and 
 npm install @jlc-eda/mcli
 ```
 
-Peer dependencies (required by your host project):
-
-```bash
-npm install zod @modelcontextprotocol/sdk
-```
-
-`@jlc-eda/mcli` ships with **zero direct dependencies** — all runtime deps are provided by your project via peer deps.
+`@jlc-eda/mcli` ships with a single direct dependency — `ajv`(validated JSON Schema data) which is bundled into the ESM artifact at build time and requires no additional install from your host project.
 
 ---
 
@@ -123,19 +117,19 @@ sub.command("add", {...});      // CLI path: issue label add, MCP path: issue.la
 
 Every command is a node. The path `issue.list` maps to:
 
-| Layer      | Reference                              |
-| ---------- | -------------------------------------- |
-| CLI argv   | `issue list`                           |
-| MCP call   | `{ path: "issue.list", input: {...} }` |
-| Shell help | `my-cli issue list --help`             |
+| Layer      | Reference                                 |
+| ---------- | ----------------------------------------- |
+| CLI argv   | `issue list`                              |
+| MCP call   | `{ path: "issue.list", input: {...} }`    |
+| Shell help | `my-cli issue list --help`                |
 | Discovery  | `mcli.discover({ query: "list issues" })` |
 
 ### MCP meta-tools (AI agent workflow)
 
-| Order | Tool            | Purpose                                                                |
-| ----- | --------------- | ---------------------------------------------------------------------- |
-| 1     | `mcli.help`     | ALWAYS call first. Returns subcommands, schemas, usage examples.       |
-| 2     | `mcli.discover` | Find specific commands by keyword after help.                          |
+| Order | Tool            | Purpose                                                                 |
+| ----- | --------------- | ----------------------------------------------------------------------- |
+| 1     | `mcli.help`     | ALWAYS call first. Returns subcommands, schemas, usage examples.        |
+| 2     | `mcli.discover` | Find specific commands by keyword after help.                           |
 | 3     | `mcli.call`     | Execute a command. Returns real data (search results, page content...). |
 
 Agent workflow:
@@ -232,7 +226,10 @@ interface CommandOptions {
   input: JSONSchema;
   examples?: CommandExample[];
   related?: string[];
-  handler: (input: Record<string, unknown>, ctx: CommandContext) => Promise<CommandResult> | CommandResult;
+  handler: (
+    input: Record<string, unknown>,
+    ctx: CommandContext,
+  ) => Promise<CommandResult> | CommandResult;
   display?: (result: CommandResult) => void;
 }
 ```
@@ -250,7 +247,7 @@ interface CommandOptions {
 
 ```ts
 interface CommandResult {
-  data?: unknown;                              // structured output
+  data?: unknown; // structured output
   next?: Array<{ path: string; reason: string }>; // Agent hints for follow-up
 }
 ```
@@ -316,26 +313,17 @@ Error: (root): must have required property 'repo'
 | `McliExecutionError`  | handler threw / missing handler |
 
 **Registration-time errors**:
+
 - Dot in command/group name → `"Command(name) must not contain dots. Use app.group() to nest commands."`
 - Invalid example input → throws immediately on `command()` call
 
 ---
 
-## Peer dependencies
+## Direct dependencies
 
-`@jlc-eda/mcli` ships with zero direct dependencies. Host projects must provide:
+`@jlc-eda/mcli` ships with a single direct dependency — `ajv` (JSON Schema validator), which is bundled into the ESM artifact (`dist/index.js`) at build time.
 
-```json
-{
-  "dependencies": {
-    "zod": "^3.25.0 || ^4.0.0",
-    "@modelcontextprotocol/sdk": "^1.29.0"
-  }
-}
-```
-
-- **`zod`** — required by both CLI and MCP modes (MCP schema validation)
-- **`@modelcontextprotocol/sdk`** — required for MCP mode (`--mcp stdio` / `--mcp http`)
+Host projects install **nothing extra** beyond `@jlc-eda/mcli`.
 
 ---
 

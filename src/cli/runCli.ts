@@ -3,13 +3,13 @@ import { execute } from "../core/execute";
 import { search } from "../core/search";
 import { splitGlobalFlags, parseInputArgv } from "./parseArgv";
 import { renderHelp, renderSearchResult } from "./render";
-import { startMcp } from "../mcp/server";
+import { startBareMcp } from "../mcp";
 
 export async function runCli(app: McliApp, argv: string[]): Promise<void> {
   const { global, argv: rest } = splitGlobalFlags(argv);
 
   if (global.mcp) {
-    await startMcp(app, {
+    await startBareMcp(app, {
       transport: global.mcp,
       host: global.host,
       port: global.port,

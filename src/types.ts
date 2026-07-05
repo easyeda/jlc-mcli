@@ -69,4 +69,6 @@ export interface McliApp {
   command(name: string, opts: CommandOptions): void;
   resolve(argv: string[]): CommandNode | null;
   allCommands(): CommandNode[];
+  /** @internal mcli 框架内部 tool 前缀配置 */
+  ___mcli: { toolPrefix: string };
 }

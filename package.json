@@ -34,16 +34,12 @@
     "prepack": "vp pack"
   },
   "dependencies": {
-    "@jlc-eda/mcli": "file:jlc-eda-mcli-0.1.1.tgz"
+    "ajv": "^8.17.1"
   },
   "devDependencies": {
-    "@modelcontextprotocol/sdk": "1.29.0",
     "@types/node": "^26.1.0",
     "typescript": "^6.0.3",
     "vite-plus": "^0.2.2"
   },
-  "peerDependencies": {
-    "@modelcontextprotocol/sdk": "^1.29.0",
-    "zod": "^3.25.0 || ^4.0.0"
-  }
+  "peerDependencies": {}
 }

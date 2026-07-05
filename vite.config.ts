@@ -6,7 +6,7 @@ export default defineConfig({
     entry: ["./src/index.ts"],
     format: ["esm"],
     deps: {
-      neverBundle: ["@modelcontextprotocol/sdk", "@modelcontextprotocol/sdk/*", "ws"],
+      neverBundle: [],
     },
     dts: true,
     clean: true,
