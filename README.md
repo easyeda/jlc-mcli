@@ -1,5 +1,7 @@
 # @jlc-eda/mcli
 
+> ⚠️ **Preview Release**: This is an early preview version. Expect frequent breaking changes until a stable release is published. APIs, commands, and behaviors may change without prior notice.
+
 A command framework that serves **one command tree** through both **shell** and **MCP** — from a single definition with zero runtime dependencies.
 
 ---
@@ -336,47 +338,6 @@ npm pack         # produce tarball
 ```
 
 Ships only `dist/`. `@jlc-eda/mcli` → `dist/index.js`.
-
----
-
-## Project metaso-skill (real-world usage)
-
-See `metaso` project for a real CLI built on `@jlc-eda/mcli`:
-
-```ts
-// src/app.js
-export const app = createMcli({
-  name: 'metaso',
-  version: '2.0.0',
-  summary: 'Metaso AI search & page reader'
-});
-
-app.command('search', {
-  summary: 'Search via Metaso AI engine',
-  input: {
-    type: 'object',
-    properties: {
-      query: { type: 'string', description: 'Search query' },
-      scope: { type: 'string', enum: ['webpage', 'document', 'scholar', 'video'], default: 'webpage' }
-    },
-    required: ['query']
-  },
-  handler: async (input) => {
-    const data = await search(input);
-    return {
-      data,
-      next: [{ path: 'reader', reason: 'Use reader --url <link> to read a result page' }]
-    };
-  }
-});
-
-app.command('reader', { ... });
-```
-
-```bash
-metaso search --query "AI news"              # CLI shell
-metaso --mcp stdio                           # MCP mode for AI agents
-```
 
 ---
 
