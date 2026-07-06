@@ -1,4 +1,4 @@
-# @jlc-eda/mcli
+# @jlceda/mcli
 
 > ⚠️ **Preview Release**: This is an early preview version. Expect frequent breaking changes until a stable release is published. APIs, commands, and behaviors may change without prior notice.
 
@@ -9,10 +9,10 @@ A command framework that serves **one command tree** through both **shell** and 
 ## Install
 
 ```bash
-npm install @jlc-eda/mcli
+npm install @jlceda/mcli
 ```
 
-`@jlc-eda/mcli` ships with a single direct dependency — `ajv`(validated JSON Schema data) which is bundled into the ESM artifact at build time and requires no additional install from your host project.
+`@jlceda/mcli` ships with a single direct dependency — `ajv`(validated JSON Schema data) which is bundled into the ESM artifact at build time and requires no additional install from your host project.
 
 ---
 
@@ -20,7 +20,7 @@ npm install @jlc-eda/mcli
 
 ```ts
 // app.ts
-import { createMcli } from "@jlc-eda/mcli";
+import { createMcli } from "@jlceda/mcli";
 
 export const app = createMcli({
   name: "my-cli",
@@ -72,7 +72,7 @@ issue.command("list", {
 // bin.ts — your CLI entry
 #!/usr/bin/env node
 import { app } from "./app";
-import { runCli } from "@jlc-eda/mcli";
+import { runCli } from "@jlceda/mcli";
 
 await runCli(app, process.argv.slice(2));
 ```
@@ -323,9 +323,9 @@ Error: (root): must have required property 'repo'
 
 ## Direct dependencies
 
-`@jlc-eda/mcli` ships with a single direct dependency — `ajv` (JSON Schema validator), which is bundled into the ESM artifact (`dist/index.js`) at build time.
+`@jlceda/mcli` ships with a single direct dependency — `ajv` (JSON Schema validator), which is bundled into the ESM artifact (`dist/index.js`) at build time.
 
-Host projects install **nothing extra** beyond `@jlc-eda/mcli`.
+Host projects install **nothing extra** beyond `@jlceda/mcli`.
 
 ---
 
@@ -337,7 +337,7 @@ npm test         # vitest, 62 tests
 npm pack         # produce tarball
 ```
 
-Ships only `dist/`. `@jlc-eda/mcli` → `dist/index.js`.
+Ships only `dist/`. `@jlceda/mcli` → `dist/index.js`.
 
 ---
 

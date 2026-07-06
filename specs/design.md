@@ -1,4 +1,4 @@
-# @jlc-eda/mcli 实现设计
+# @jlceda/mcli 实现设计
 
 ## 0. 已确认决策
 
