@@ -99,7 +99,7 @@ export class McpBareServer {
             summary: c.summary,
           })),
         };
-        if (!node.isGroup && node.input) result.input = node.input;
+        if (!node.isGroup && node.input) result.inputSchema = node.input;
         return toolCallSuccessToResult(result);
       },
     });

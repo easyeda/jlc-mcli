@@ -64,7 +64,7 @@ export async function runCli(app: McliApp, argv: string[]): Promise<void> {
         })),
       };
       if (!lastValid.isGroup && lastValid.input) {
-        result.input = lastValid.input;
+        result.inputSchema = lastValid.input;
       }
       console.log(JSON.stringify(result, null, 2));
     } else {
